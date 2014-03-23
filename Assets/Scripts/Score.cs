@@ -17,9 +17,9 @@ public class Score : MonoBehaviour {
 	{
 		Debug.Log ("hit");
 
-		if(other.gameObject.tag == "Player")
+		if(other.tag == "Player")
 		{
-			other.gameObject.GetComponent<Moving>().HandleDeath();
+			other.gameObject.GetComponentInChildren<Moving>().HandleDeath();
 		}
 	}
 }

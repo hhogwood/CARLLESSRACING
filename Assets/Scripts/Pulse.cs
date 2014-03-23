@@ -3,23 +3,33 @@ using System.Collections;
 
 public class Pulse : MonoBehaviour 
 {
-	private float defaultScale;
+	public float ScaleUp;
+	public float ScaleDown;
+
+	private float defaultScaleX;
+	private float defaultScaleY;
 	 
 	void Start () 
 	{
-		defaultScale = transform.localScale.x;
+		defaultScaleX = transform.localScale.x;
+		defaultScaleY = transform.localScale.y;
 	}
-	
+
 	void Update()
 	{
 		if(Overlord.Instance.TO.Beat)
 		{
-			transform.localScale = new Vector3 (transform.localScale.x + 10f, transform.localScale.y + 10f, transform.localScale.z) ;
+			transform.localScale = new Vector3 (transform.localScale.x + ScaleUp, transform.localScale.y + ScaleUp, transform.localScale.z) ;
 		}
-		
-		if(transform.localScale.x > defaultScale)
+
+		if(transform.localScale.x > defaultScaleX)
 		{
-			transform.localScale = new Vector3 (transform.localScale.x - .5f, transform.localScale.y - .5f, transform.localScale.z) ;
+			transform.localScale = new Vector3 (transform.localScale.x - ScaleDown, transform.localScale.y - ScaleDown, transform.localScale.z) ;
+		}
+
+		if(transform.localScale.x < defaultScaleX)
+		{
+			transform.localScale = new Vector3 (defaultScaleX, defaultScaleY, transform.localScale.z) ;
 		}
 	}
 }

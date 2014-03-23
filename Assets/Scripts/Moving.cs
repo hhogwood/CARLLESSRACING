@@ -12,10 +12,9 @@ public class Moving : MonoBehaviour
 	public InputDevice playerController;
 	public PlayerManager manager;
 	public Player myPlayer;
+	public Vector3 SpawnPoint;	
 
 	public LayerMask FloorMask;
-
-	public Vector3 SpawnPoint;
 
 	#region xMovement Speeds
 	private float xInput;
@@ -586,6 +585,12 @@ public class Moving : MonoBehaviour
 		else if(other.tag == "Spikes")
 		{
 			Spikes();
+		}
+
+		else if(other.tag == "WinZone")
+		{
+			HandleDeath();
+			myPlayer.AddScore();
 		}
 	}
 
