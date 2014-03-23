@@ -103,6 +103,8 @@ public class Moving : MonoBehaviour
 
 	private Vector2 Velocity;
 
+	private Vector2 lastPlatformPos;
+
 	void Start()
 	{
 		attackHitBox.transform.localPosition = horizontalPosition;
@@ -151,6 +153,7 @@ public class Moving : MonoBehaviour
 
 					//Here we give the Velocity vector our x movement
 					Velocity.x = xMovement;
+
 					//Then we apply our reduction
 					reductionAmount = xMovement * drag;
 					reductionAmount = Mathf.Abs(xMovement - reductionAmount);
@@ -240,7 +243,7 @@ public class Moving : MonoBehaviour
 			if(transform.position.x > manager.rightKill)
 			{
 				HandleDeath();
-				deathParticleHolder.transform.eulerAngles = new Vector3(180, 90, 0);
+				if(deathParticleHolder.activeSelf) deathParticleHolder.transform.eulerAngles = new Vector3(180, 90, 0);
 			}
 			else if(transform.position.x < manager.leftKill)
 			{
@@ -249,12 +252,15 @@ public class Moving : MonoBehaviour
 			else if(transform.position.y < manager.botKill)
 			{
 				HandleDeath();
-				deathParticleHolder.transform.eulerAngles = new Vector3(270, 90, 0);
+				if(deathParticleHolder.activeSelf) 
+				{
+					deathParticleHolder.transform.eulerAngles = new Vector3(270, 90, 0);
+				}
 			}
 			else if(transform.position.y > manager.topKill)
 			{
 				HandleDeath();
-				deathParticleHolder.transform.eulerAngles = new Vector3(90, 90, 0);
+				if(deathParticleHolder.activeSelf) deathParticleHolder.transform.eulerAngles = new Vector3(90, 90, 0);
 			}
 			#endregion
 		}
@@ -305,6 +311,8 @@ public class Moving : MonoBehaviour
 							jumpTwo = true;
 							if(xInput == 0)	xMovement = 0;
 							throughCollider.SetActive(true);
+
+							lastPlatformPos = hitInfo.transform.position;
 						}
 					}
 					else
@@ -328,9 +336,22 @@ public class Moving : MonoBehaviour
 							grounded = false;
 							jumpTwo = true;
 							throughCollider.SetActive (false);
+
+
+						}
+						else
+						{
+							transform.position = (Vector2)transform.position + ((Vector2)hitInfo.transform.position - lastPlatformPos);
+							lastPlatformPos = hitInfo.transform.position;
 						}
 
 					}
+					else
+					{
+						transform.position = (Vector2)transform.position + ((Vector2)hitInfo.transform.position - lastPlatformPos);
+						lastPlatformPos = hitInfo.transform.position;
+					}
+
 				}
 				#endregion
 
@@ -594,11 +615,8 @@ public class Moving : MonoBehaviour
 
 	public void HandleDeath()
 	{
-		if(Hit)
-		{
-			deathParticleHolder = (GameObject)GameObject.Instantiate (DeathParticles) as GameObject;
-			deathParticleHolder.transform.position = transform.position;
-		}
+		deathParticleHolder = (GameObject)GameObject.Instantiate (DeathParticles) as GameObject;
+		deathParticleHolder.transform.position = transform.position;
 
 		myPlayer.PlayerDeath();
 
