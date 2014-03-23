@@ -560,6 +560,10 @@ public class Moving : MonoBehaviour
 				}
 			}
 		}
+		else if(other.tag == "Spikes")
+		{
+			Spikes();
+		}
 	}
 
 	public void HitCollide()
@@ -588,8 +592,12 @@ public class Moving : MonoBehaviour
 
 	private void HandleDeath()
 	{
-		deathParticleHolder = (GameObject)GameObject.Instantiate (DeathParticles) as GameObject;
-		deathParticleHolder.transform.position = transform.position;
+		if(Hit)
+		{
+			deathParticleHolder = (GameObject)GameObject.Instantiate (DeathParticles) as GameObject;
+			deathParticleHolder.transform.position = transform.position;
+		}
+
 		myPlayer.PlayerDeath();
 
 		if(!myPlayer.dead)
@@ -607,5 +615,10 @@ public class Moving : MonoBehaviour
 		Velocity = Vector2.zero;
 		ySpeed = 0;
 		rigidbody2D.velocity = Velocity;
+	}
+
+	public void Spikes()
+	{
+		HandleDeath ();
 	}
 }
