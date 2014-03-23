@@ -38,6 +38,8 @@ public class PlayerManager : MonoBehaviour
 			UIOnePos.x += UImoveAmount;
 			tempObj.GetComponent<SpriteRenderer>().sprite = CharacterColours[i];
 		}
+
+		Overlord.Instance.TO.ChangeTempo(150);
 	}
 
 	void Update()

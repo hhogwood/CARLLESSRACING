@@ -12,8 +12,12 @@ public class TempoOverlord : MonoBehaviour
 	private float dbValue;
 	private float lastValue;
 
+	private int tempo;
+	public float beatLength;
+
 	void Start()
 	{
+
 
 	}
 
@@ -42,6 +46,12 @@ public class TempoOverlord : MonoBehaviour
 		lastValue = dbValue;
 
 		avgSamples = 0;
+	}
+
+	public void ChangeTempo(int _tempo)
+	{
+		tempo = _tempo;
+		beatLength = 60f/tempo;
 	}
 }
 
