@@ -11,6 +11,8 @@ public class Player : MonoBehaviour
 	private float lifeIconDifference = 0.27f;
 
 	private List<GameObject> lifeIcons = new List<GameObject>();
+	private Vector3 uiPos;
+	private Color uiColor;
 
 
 	public void InitializePlayer(int lifeCount, Vector2 uiLocation, Color lifeColor)
@@ -18,7 +20,10 @@ public class Player : MonoBehaviour
 		numberOfLives = lifeCount;
 		GetComponent<Moving>().myPlayer = this;
 
-		Vector3 temp;
+		uiPos = uiLocation;
+		uiColor = lifeColor;
+
+		/*Vector3 temp;
 		for(int i = 0; i < numberOfLives; i++)
 		{
 			lifeIcons.Add((GameObject)GameObject.Instantiate(lifeCountPrefab) as GameObject);
@@ -32,7 +37,21 @@ public class Player : MonoBehaviour
 
 
 			uiLocation.x += lifeIconDifference;
-		}
+		}*/
+	}
+
+	public void AddScore()
+	{
+		lifeIcons.Add((GameObject)GameObject.Instantiate(lifeCountPrefab) as GameObject);
+		lifeIcons[lifeIcons.Count - 1].GetComponent<SpriteRenderer>().color = uiColor;
+		
+		lifeIcons[lifeIcons.Count - 1].transform.parent = Camera.main.transform;
+
+		uiPos.z = 1;
+		lifeIcons[lifeIcons.Count - 1].transform.localPosition = uiPos;
+		
+		
+		uiPos.x += lifeIconDifference;
 	}
 
 	public void PlayerDeath()
