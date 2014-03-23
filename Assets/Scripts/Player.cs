@@ -37,7 +37,7 @@ public class Player : MonoBehaviour
 
 	public void PlayerDeath()
 	{
-		if(numberOfLives > 1)
+		/*if(numberOfLives > 1)
 		{
 			numberOfLives--;
 			GameObject.Destroy (lifeIcons[lifeIcons.Count - 1]);
@@ -51,6 +51,6 @@ public class Player : MonoBehaviour
 				GameObject.Destroy (lifeIcons[lifeIcons.Count - 1]);
 				lifeIcons.RemoveAt (lifeIcons.Count - 1);
 			}
-		}
+		}*/
 	}
 }

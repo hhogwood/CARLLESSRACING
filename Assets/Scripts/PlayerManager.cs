@@ -42,7 +42,7 @@ public class PlayerManager : MonoBehaviour
 
 	void Update()
 	{
-		if(numberOfPlayers > 1)
+		/*if(numberOfPlayers > 1)
 		{
 			numberAlive = 0;
 			for(int i = 0; i < numberOfPlayers; i++)
@@ -54,7 +54,7 @@ public class PlayerManager : MonoBehaviour
 			{
 
 			}
-		}
+		}*/
 
 		if(InputManager.ActiveDevice.Action2)
 		{
