@@ -14,7 +14,6 @@ public class Player : MonoBehaviour
 	private Vector3 uiPos;
 	private Color uiColor;
 
-
 	public void InitializePlayer(int lifeCount, Vector2 uiLocation, Color lifeColor)
 	{
 		numberOfLives = lifeCount;
