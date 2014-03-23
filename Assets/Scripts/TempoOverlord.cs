@@ -5,6 +5,7 @@ using System.Collections.Generic;
 public class TempoOverlord : MonoBehaviour
 {
 	public bool Beat;
+	public int BeatCount = 0;
 
 	private float[] samples = new float[2056];
 	private float avgSamples = 0;
@@ -40,6 +41,7 @@ public class TempoOverlord : MonoBehaviour
 			if(dbValue > .9f)
 			{
 				Beat = true;
+				BeatCount++;
 			}
 		}
 

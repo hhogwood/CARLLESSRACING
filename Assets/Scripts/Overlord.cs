@@ -8,6 +8,7 @@ public class Overlord : MonoBehaviour
 	public static Overlord Instance { get { return instance; } }
 
 	public TempoOverlord TO;
+	public SoundOverlord SO;
 
 	void Awake()
 	{
@@ -17,5 +18,6 @@ public class Overlord : MonoBehaviour
 	void Start()
 	{
 		TO = gameObject.GetComponent<TempoOverlord>();
+		SO = GameObject.Find("SoundOverlord").GetComponent<SoundOverlord>();
 	}
 }

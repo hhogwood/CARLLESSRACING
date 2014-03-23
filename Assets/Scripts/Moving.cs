@@ -15,6 +15,8 @@ public class Moving : MonoBehaviour
 
 	public LayerMask FloorMask;
 
+	public Vector3 SpawnPoint;
+
 	#region xMovement Speeds
 	private float xInput;
 	private float xMovement;
@@ -590,7 +592,7 @@ public class Moving : MonoBehaviour
 		}
 	}
 
-	private void HandleDeath()
+	public void HandleDeath()
 	{
 		if(Hit)
 		{
@@ -602,7 +604,7 @@ public class Moving : MonoBehaviour
 
 		if(!myPlayer.dead)
 		{
-			transform.position = new Vector2 (0f, 3f);
+			transform.position = SpawnPoint;
 			Hit = false;
 		}
 	}

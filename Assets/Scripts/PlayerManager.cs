@@ -31,6 +31,7 @@ public class PlayerManager : MonoBehaviour
 		{
 			tempObj = (GameObject)GameObject.Instantiate(baseCharacterObject) as GameObject;
 			tempObj.transform.position = spawnLocations[i].transform.position;
+			tempObj.GetComponent<Moving>().SpawnPoint = spawnLocations[i].transform.position;
 			tempObj.GetComponent<Moving>().playerController = InputManager.Devices[i];
 			tempObj.GetComponent<Moving>().manager = this;
 			players[i] = tempObj.GetComponent<Player>();
