@@ -18,8 +18,7 @@ public class TempoOverlord : MonoBehaviour
 
 	void Start()
 	{
-
-
+		
 	}
 
 	void Update()

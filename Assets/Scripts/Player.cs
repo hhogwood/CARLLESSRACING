@@ -48,7 +48,7 @@ public class Player : MonoBehaviour
 
 		uiPos.z = 1;
 		lifeIcons[lifeIcons.Count - 1].transform.localPosition = uiPos;
-		
+		Debug.Log ("asdf");
 		
 		uiPos.x += lifeIconDifference;
 	}

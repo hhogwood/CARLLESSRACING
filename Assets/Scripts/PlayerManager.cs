@@ -59,9 +59,9 @@ public class PlayerManager : MonoBehaviour
 			}
 		}*/
 
-		if(InputManager.ActiveDevice.Action2)
+		if(Input.GetKeyDown(KeyCode.Space))
 		{
-			Application.LoadLevel("Scene");
+			Application.LoadLevel("Level1");
 		}
 	}
 

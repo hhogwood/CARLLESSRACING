@@ -302,7 +302,7 @@ public class Moving : MonoBehaviour
 				{
 
 					hitInfo = Physics2D.Raycast((Vector2)transform.position, -Vector2.up, 0.2f, FloorMask);
-					if(hitInfo.transform != null && hitInfo.transform.tag == "Floor")
+					if(hitInfo.transform != null && (hitInfo.transform.tag == "Floor" || hitInfo.transform.tag == "MovingFloor"))
 					{
 						if(LayerMask.LayerToName(hitInfo.transform.gameObject.layer) != "ThroughFloor" || yInput >= -0.85f)
 						{
@@ -338,15 +338,17 @@ public class Moving : MonoBehaviour
 
 
 						}
-						else
+						else if(hitInfo.transform.tag == "MovingFloor")
 						{
+							Debug.Log ("Hit");
 							transform.position = (Vector2)transform.position + ((Vector2)hitInfo.transform.position - lastPlatformPos);
 							lastPlatformPos = hitInfo.transform.position;
 						}
 
 					}
-					else
+					else if(hitInfo.transform.tag == "MovingFloor")
 					{
+						Debug.Log (lastPlatformPos);
 						transform.position = (Vector2)transform.position + ((Vector2)hitInfo.transform.position - lastPlatformPos);
 						lastPlatformPos = hitInfo.transform.position;
 					}
@@ -589,8 +591,9 @@ public class Moving : MonoBehaviour
 
 		else if(other.tag == "WinZone")
 		{
-			HandleDeath();
+			Debug.Log ("adf");
 			myPlayer.AddScore();
+			HandleDeath();
 		}
 	}
 

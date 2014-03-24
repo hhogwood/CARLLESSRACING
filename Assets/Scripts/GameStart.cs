@@ -6,11 +6,17 @@ public class GameStart : MonoBehaviour
 	void Start () 
 	{
 		//Overlord.Instance.SO.PlayMusic ("Helix Nebula");
-		Overlord.Instance.SO.PlaySound ("get to the top", 1f);
+
+		Debug.Log ("hot");
 	}
 
 	void Update () 
 	{
+		if(Overlord.Instance.TO.BeatCount == 1 && Overlord.Instance.TO.Beat)
+		{
+			Overlord.Instance.SO.PlaySound ("get to the top", 1f);
+		}
+
 		if(Overlord.Instance.TO.BeatCount == 28 && Overlord.Instance.TO.Beat)
 		{
 			Overlord.Instance.SO.PlaySound ("three", 1f);
@@ -30,6 +36,11 @@ public class GameStart : MonoBehaviour
 		{
 			Overlord.Instance.SO.PlaySound ("go", 1f);
 			GameObject.Find("StartBox").SetActive(false);
+		}
+
+		if(Overlord.Instance.TO.BeatCount >= 300)
+		{
+			Time.timeScale = 0;
 		}
 	}
 }
