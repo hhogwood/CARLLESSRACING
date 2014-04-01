@@ -19,13 +19,14 @@ public class Moving : MonoBehaviour
 	#region xMovement Speeds
 	private float xInput;
 	private float xMovement;
-	private float accelRate = 1.6f;
-	private float maxSpeed = 9f;
-	private float drag = 0.83f;
+	private float accelRate = 1.2f;
+	private float maxSpeed = 8f;
+	private float drag = 0.8f;
 	private float reductionAmount;
 	private float minimumReduction = 0.4f;
 
-	private float airDrag = 0.98f;
+	private float airDrag = 0.96f;
+	private float airAccel = 0.8f;
 	#endregion
 
 	#region yMovement stuff
@@ -40,10 +41,7 @@ public class Moving : MonoBehaviour
 	private float jumpHoldLength = 0.3f;
 
 	private bool jumpHold = false;
-
-	private bool jumpTwo = true;
-
-	private Vector2 raycastPos = -Vector2.up * 0.145f;
+	
 	private RaycastHit2D hitInfo;
 	private bool grounded = false;
 
@@ -51,6 +49,23 @@ public class Moving : MonoBehaviour
 	private float noLandLength = 0.14f;
 	#endregion
 
+	#region Slide and Wall Jump
+	private bool sliding = false;
+	private bool slideRight = false;
+	private float slideSpeed = -3f;
+	private float slideAccel = 0.3f;
+	private float slideJumpSpeed = 5f;
+
+	#endregion
+
+	#region Raycast Origins
+	private Vector2 upperLeft = new Vector2(-0.054f , -0.12f);
+	private Vector2 upperRight = new Vector2(0.054f , -0.12f);
+	private Vector2 midLeft = new Vector2 (-0.054f, 0f);
+	private Vector2 midRight = new Vector2 (0.054f, 0f);
+	private Vector2 lowerLeft = new Vector2(-0.054f, -0.18f);
+	private Vector2 lowerRight = new Vector2(0.054f, -0.18f);
+	#endregion
 
 	#region Attack
 	public GameObject attackHitBox;
@@ -76,11 +91,6 @@ public class Moving : MonoBehaviour
 	private float trappedTime;
 	private float trapLength = 1f;
 	private bool trapped = false;
-	#endregion
-
-	#region Detect for lack of ground
-	private Vector2 groundCheckLeft = new Vector2(-0.054f , -0.12f);
-	private Vector2 groundCheckRight = new Vector2(0.054f , -0.12f);
 	#endregion
 
 	#region Hit
@@ -186,25 +196,109 @@ public class Moving : MonoBehaviour
 				#region yMovement
 				if(!grounded)
 				{
-					if(jumpHold && playerController.Action1.IsPressed)
+					if(!sliding)
 					{
-						if(jumpHoldTime < Time.time)
+						if(jumpHold && playerController.Action1.IsPressed)
+						{
+							if(jumpHoldTime < Time.time)
+							{
+								jumpHold = false;
+							}
+							else ySpeed -= holdJumpReduction;
+
+							if(ySpeed < gravityMax) ySpeed = gravityMax;
+							Velocity.y = ySpeed;
+						}
+						else
 						{
 							jumpHold = false;
+							if(ySpeed > -0.1f) ySpeed -= (gravityForceInitial);
+							else ySpeed -= gravityForceSecondary;
+							
+							if(ySpeed < gravityMax) ySpeed = gravityMax;
+							Velocity.y = ySpeed;
 						}
-						else ySpeed -= holdJumpReduction;
 
-						if(ySpeed < gravityMax) ySpeed = gravityMax;
-						Velocity.y = ySpeed;
+						if(ySpeed < 0)
+						{
+							if(xMovement >= 0.5f)
+							{
+								hitInfo = Physics2D.Raycast((Vector2)transform.position + upperRight, Vector2.right, 0.03f, hitCollideDetection);
+								if(NoWallSlide())
+								{
+									hitInfo = Physics2D.Raycast((Vector2)transform.position + midRight, Vector2.right, 0.03f, hitCollideDetection);
+									if(NoWallSlide ())
+									{
+										hitInfo = Physics2D.Raycast((Vector2)transform.position + lowerRight, Vector2.right, 0.03f, hitCollideDetection);
+										NoWallSlide();
+									}
+								}
+
+								slideRight = true;
+
+							}
+							else if(xMovement <= -0.5f)
+							{
+								hitInfo = Physics2D.Raycast((Vector2)transform.position + upperLeft, -Vector2.right, 0.03f, hitCollideDetection);
+								if(NoWallSlide())
+								{
+									hitInfo = Physics2D.Raycast((Vector2)transform.position + midLeft, -Vector2.right, 0.03f, hitCollideDetection);
+									if(NoWallSlide())
+									{
+										hitInfo = Physics2D.Raycast((Vector2)transform.position + lowerLeft, -Vector2.right, 0.03f, hitCollideDetection);
+										NoWallSlide ();
+									}
+								}
+								slideRight = false;
+							}
+						}
 					}
-					else
+					else if(sliding)
 					{
-						jumpHold = false;
-						if(ySpeed > -0.1f) ySpeed -= (gravityForceInitial);
-						else ySpeed -= gravityForceSecondary;
-						
-						if(ySpeed < gravityMax) ySpeed = gravityMax;
+						if(ySpeed > slideSpeed)
+						{
+							ySpeed -= slideAccel;
+							if(ySpeed < slideSpeed) ySpeed = slideSpeed;
+						}
+
 						Velocity.y = ySpeed;
+
+						#region Detect move away
+						if(slideRight)
+						{
+							if(xInput > -0.4f && xMovement < 0) xMovement = 0;
+							hitInfo = Physics2D.Raycast((Vector2)transform.position + upperRight, Vector2.right, 0.2f, hitCollideDetection);
+							if(NoWallSlide())
+							{
+								hitInfo = Physics2D.Raycast((Vector2)transform.position + midRight, Vector2.right, 0.2f, hitCollideDetection);
+								if(NoWallSlide ())
+								{
+									hitInfo = Physics2D.Raycast((Vector2)transform.position + lowerRight, Vector2.right, 0.2f, hitCollideDetection);
+									if(NoWallSlide())
+									{
+										sliding = false;
+									}
+								}
+							}
+						}
+						else
+						{
+							if(xInput < 0.4f && xMovement > 0) xMovement = 0;
+							hitInfo = Physics2D.Raycast((Vector2)transform.position + upperLeft, -Vector2.right, 0.2f, hitCollideDetection);
+							if(NoWallSlide())
+							{
+								hitInfo = Physics2D.Raycast((Vector2)transform.position + midLeft, -Vector2.right, 0.2f, hitCollideDetection);
+								if(NoWallSlide())
+								{
+									hitInfo = Physics2D.Raycast((Vector2)transform.position + lowerLeft, -Vector2.right, 0.2f, hitCollideDetection);
+									if(NoWallSlide())
+									{
+										sliding = false;
+									}
+								}
+							}
+						}
+						#endregion
 					}
 				}
 				#endregion
@@ -279,20 +373,12 @@ public class Moving : MonoBehaviour
 				{
 					if(playerController.Action1.WasPressed)
 					{
-						hitInfo = Physics2D.Raycast((Vector2)transform.position + groundCheckLeft, -Vector2.up, 0.2f, FloorMask);
+						hitInfo = Physics2D.Raycast((Vector2)transform.position + lowerLeft, -Vector2.up, 0.2f, FloorMask);
 						if (!CheckForJumpThrough ()) 
 					    {
-							hitInfo = Physics2D.Raycast((Vector2)transform.position + groundCheckRight, -Vector2.up, 0.2f, FloorMask);
+							hitInfo = Physics2D.Raycast((Vector2)transform.position + lowerRight, -Vector2.up, 0.2f, FloorMask);
 							if(!CheckForJumpThrough()) jump ();
 						}
-					}
-				}
-				else if(jumpTwo && tempNoLand < Time.time)
-				{
-					if(playerController.Action1.WasPressed)
-					{
-						jump ();
-						jumpTwo = false;
 					}
 				}
 				#endregion
@@ -307,7 +393,7 @@ public class Moving : MonoBehaviour
 						if(LayerMask.LayerToName(hitInfo.transform.gameObject.layer) != "ThroughFloor" || yInput >= -0.85f)
 						{
 							grounded = true;
-							jumpTwo = true;
+							sliding = false;
 							if(xInput == 0)	xMovement = 0;
 							throughCollider.SetActive(true);
 
@@ -322,25 +408,40 @@ public class Moving : MonoBehaviour
 							throughCollider.SetActive(true);
 						}
 					}
+
+					if(sliding && playerController.Action1.WasPressed)
+					{
+						jump();
+						if(slideRight)
+						{
+							xMovement = -slideJumpSpeed;
+							Velocity.x = xMovement;
+						}
+						else
+						{
+							xMovement = slideJumpSpeed;
+							Velocity.x = xMovement;
+						}
+
+					}
+
 				}
 				else if(grounded)
 				{
-					hitInfo = Physics2D.Raycast ((Vector2)transform.position + groundCheckLeft, -Vector2.up, 0.1f, FloorMask);
+					hitInfo = Physics2D.Raycast ((Vector2)transform.position + lowerLeft, -Vector2.up, 0.1f, FloorMask);
 					if(hitInfo.transform == null)
 					{
-						hitInfo = Physics2D.Raycast ((Vector2)transform.position + groundCheckRight, -Vector2.up, 0.1f, FloorMask);
+						hitInfo = Physics2D.Raycast ((Vector2)transform.position + lowerRight, -Vector2.up, 0.1f, FloorMask);
 						if(hitInfo.transform == null)
 						{
 							ySpeed = -0.13f;
 							grounded = false;
-							jumpTwo = true;
 							throughCollider.SetActive (false);
 
 
 						}
 						else if(hitInfo.transform.tag == "MovingFloor")
 						{
-							Debug.Log ("Hit");
 							transform.position = (Vector2)transform.position + ((Vector2)hitInfo.transform.position - lastPlatformPos);
 							lastPlatformPos = hitInfo.transform.position;
 						}
@@ -348,7 +449,6 @@ public class Moving : MonoBehaviour
 					}
 					else if(hitInfo.transform.tag == "MovingFloor")
 					{
-						Debug.Log (lastPlatformPos);
 						transform.position = (Vector2)transform.position + ((Vector2)hitInfo.transform.position - lastPlatformPos);
 						lastPlatformPos = hitInfo.transform.position;
 					}
@@ -440,35 +540,42 @@ public class Moving : MonoBehaviour
 					switch(hitDirection)
 					{
 					case Direction.right:
-						hitInfo = Physics2D.Raycast((Vector2)transform.position + topRecoverCheck, Vector2.right, 0.08f, hitCollideDetection);
+						hitInfo = Physics2D.Raycast((Vector2)transform.position + upperRight, Vector2.right, 0.08f, hitCollideDetection);
 						if(NoRecover ())
 						{
-							hitInfo = Physics2D.Raycast((Vector2)transform.position + botRecoverCheck, Vector2.right, 0.08f, hitCollideDetection);
-							NoRecover ();
+							hitInfo = Physics2D.Raycast((Vector2)transform.position + midRight, Vector2.right, 0.08f, hitCollideDetection);
+							if(NoRecover())
+							{
+								hitInfo = Physics2D.Raycast((Vector2)transform.position + lowerRight, Vector2.right, 0.08f, hitCollideDetection);
+								NoRecover ();
+							}
 						}
 						break;
 					case Direction.left:
-						hitInfo = Physics2D.Raycast((Vector2)transform.position - topRecoverCheck, -Vector2.right, 0.08f, hitCollideDetection);
+						hitInfo = Physics2D.Raycast((Vector2)transform.position + lowerLeft, -Vector2.right, 0.08f, hitCollideDetection);
 						if(NoRecover ())
 						{
-							hitInfo = Physics2D.Raycast((Vector2)transform.position - botRecoverCheck, -Vector2.right, 0.08f, hitCollideDetection);
-							NoRecover ();
+							hitInfo = Physics2D.Raycast((Vector2)transform.position + midLeft, -Vector2.right, 0.08f, hitCollideDetection);
+							if(NoRecover ())
+							{
+								hitInfo = Physics2D.Raycast((Vector2)transform.position + upperLeft, -Vector2.right, 0.08f, hitCollideDetection);
+								NoRecover ();
+							}
 						}
 						break;
 					case Direction.down:
-						hitInfo = Physics2D.Raycast((Vector2)transform.position + groundCheckLeft, -Vector2.up, 0.09f, hitCollideDetection);
+						hitInfo = Physics2D.Raycast((Vector2)transform.position + lowerLeft, -Vector2.up, 0.09f, hitCollideDetection);
 						if(NoRecover ())
 						{
-							hitInfo = Physics2D.Raycast((Vector2)transform.position + groundCheckRight, -Vector2.up, 0.09f, hitCollideDetection);
+							hitInfo = Physics2D.Raycast((Vector2)transform.position + lowerRight, -Vector2.up, 0.09f, hitCollideDetection);
 							NoRecover ();
 						}
 						break;
 					case Direction.up:
-						Debug.DrawRay((Vector2)transform.position - groundCheckLeft, Vector2.up * 0.09f);
-						hitInfo = Physics2D.Raycast((Vector2)transform.position - groundCheckLeft, Vector2.up, 0.09f, hitCollideDetection);
+						hitInfo = Physics2D.Raycast((Vector2)transform.position + upperLeft, Vector2.up, 0.09f, hitCollideDetection);
 						if(NoRecover ())
 						{
-							hitInfo = Physics2D.Raycast((Vector2)transform.position - groundCheckRight, Vector2.up, 0.09f, hitCollideDetection);
+							hitInfo = Physics2D.Raycast((Vector2)transform.position + upperRight, Vector2.up, 0.09f, hitCollideDetection);
 							NoRecover ();
 						}
 						break;
@@ -526,6 +633,7 @@ public class Moving : MonoBehaviour
 	private void jump()
 	{
 		ySpeed = jumpSpeed;
+		sliding = false;
 		grounded = false;
 		jumpHold = true;
 		throughCollider.SetActive (false);
@@ -537,9 +645,18 @@ public class Moving : MonoBehaviour
 		if(hitInfo.transform != null)
 		{
 			Hit = false;
-			jumpTwo = true;
 			recovered = true;
 			recoverTimer = revoverLength + Time.time;
+			return false;
+		}
+		else return true;
+	}
+
+	private bool NoWallSlide()
+	{
+		if(hitInfo.transform != null)
+		{
+			sliding = true;
 			return false;
 		}
 		else return true;
@@ -554,7 +671,6 @@ public class Moving : MonoBehaviour
 				Hit = true;
 				SwitchAttackHitBox(false);
 				throughCollider.SetActive(false);
-				jumpTwo = false;
 				ySpeed = 0;
 				xMovement = 0;
 
