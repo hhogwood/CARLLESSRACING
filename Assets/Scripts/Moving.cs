@@ -19,9 +19,9 @@ public class Moving : MonoBehaviour
 	#region xMovement Speeds
 	private float xInput;
 	private float xMovement;
-	private float accelRate = 1.2f;
-	private float maxSpeed = 8f;
-	private float drag = 0.8f;
+	private float accelRate = 1.3f;
+	private float maxSpeed = 9f;
+	private float drag = 0.87f;
 	private float reductionAmount;
 	private float minimumReduction = 0.4f;
 
@@ -30,11 +30,11 @@ public class Moving : MonoBehaviour
 	#endregion
 
 	#region yMovement stuff
-	private float gravityForceInitial = 0.7f;
-	private float gravityForceSecondary = 0.7f;
+	private float gravityForceInitial = 1f;
+	private float gravityForceSecondary = 0.9f;
 	private float gravityMax = -14f;
-	private float jumpSpeed = 6f;
-	private float holdJumpReduction = 0.2f;
+	private float jumpSpeed = 11f;
+	private float holdJumpReduction = 0.5f;
 	private float ySpeed;
 
 	private float jumpHoldTime;
@@ -54,8 +54,10 @@ public class Moving : MonoBehaviour
 	private bool slideRight = false;
 	private float slideSpeed = -3f;
 	private float slideAccel = 0.3f;
-	private float slideJumpSpeed = 5f;
+	private float slideJumpSpeed = 6.5f;
 
+	private float timeFromRelease;
+	private float lengthForRelease = 0.2f;
 	#endregion
 
 	#region Raycast Origins
@@ -122,6 +124,7 @@ public class Moving : MonoBehaviour
 	// Update is called once per frame
 	void FixedUpdate () 
 	{
+		Debug.Log (xMovement);
 		if(!myPlayer.dead)
 		{
 			if(!Hit && !recovered && !trapped)
@@ -267,36 +270,12 @@ public class Moving : MonoBehaviour
 						if(slideRight)
 						{
 							if(xInput > -0.4f && xMovement < 0) xMovement = 0;
-							hitInfo = Physics2D.Raycast((Vector2)transform.position + upperRight, Vector2.right, 0.2f, hitCollideDetection);
-							if(NoWallSlide())
-							{
-								hitInfo = Physics2D.Raycast((Vector2)transform.position + midRight, Vector2.right, 0.2f, hitCollideDetection);
-								if(NoWallSlide ())
-								{
-									hitInfo = Physics2D.Raycast((Vector2)transform.position + lowerRight, Vector2.right, 0.2f, hitCollideDetection);
-									if(NoWallSlide())
-									{
-										sliding = false;
-									}
-								}
-							}
+
 						}
 						else
 						{
 							if(xInput < 0.4f && xMovement > 0) xMovement = 0;
-							hitInfo = Physics2D.Raycast((Vector2)transform.position + upperLeft, -Vector2.right, 0.2f, hitCollideDetection);
-							if(NoWallSlide())
-							{
-								hitInfo = Physics2D.Raycast((Vector2)transform.position + midLeft, -Vector2.right, 0.2f, hitCollideDetection);
-								if(NoWallSlide())
-								{
-									hitInfo = Physics2D.Raycast((Vector2)transform.position + lowerLeft, -Vector2.right, 0.2f, hitCollideDetection);
-									if(NoWallSlide())
-									{
-										sliding = false;
-									}
-								}
-							}
+
 						}
 						#endregion
 					}
