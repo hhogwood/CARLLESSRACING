@@ -8,110 +8,123 @@ public class Moving : MonoBehaviour
 	{
 		left, right, up, down
 	};
-
+	
 	public InputDevice playerController;
 	public PlayerManager manager;
 	public Player myPlayer;
 	public Vector3 SpawnPoint;	
-
+	
 	public LayerMask FloorMask;
-
+	
 	#region xMovement Speeds
 	private float xInput;
 	private float xMovement;
-	private float accelRate = 1.6f;
+	private float accelRate = 1.3f;
 	private float maxSpeed = 9f;
-	private float drag = 0.83f;
+	private float drag = 0.87f;
 	private float reductionAmount;
 	private float minimumReduction = 0.4f;
-
-	private float airDrag = 0.98f;
+	
+	private float airDrag = 0.96f;
+	private float airAccel = 0.8f;
 	#endregion
-
+	
 	#region yMovement stuff
-	private float gravityForceInitial = 0.7f;
-	private float gravityForceSecondary = 0.7f;
+	private float gravityForceInitial = 1f;
+	private float gravityForceSecondary = 0.9f;
 	private float gravityMax = -14f;
-	private float jumpSpeed = 6f;
-	private float holdJumpReduction = 0.2f;
+	private float jumpSpeed = 11f;
+	private float holdJumpReduction = 0.5f;
 	private float ySpeed;
-
+	
 	private float jumpHoldTime;
 	private float jumpHoldLength = 0.3f;
-
+	
 	private bool jumpHold = false;
-
-	private bool jumpTwo = true;
-
-	private Vector2 raycastPos = -Vector2.up * 0.145f;
+	
 	private RaycastHit2D hitInfo;
 	private bool grounded = false;
-
+	
 	private float tempNoLand;
 	private float noLandLength = 0.14f;
 	#endregion
-
-
+	
+	#region Slide and Wall Jump
+	private bool sliding = false;
+	private bool slideRight = false;
+	private float slideSpeed = -3f;
+	private float slideAccel = 0.3f;
+	private float slideJumpSpeed = 6.5f;
+	
+	private float timeFromRelease;
+	private float lengthForRelease = 0.2f;
+	#endregion
+	
+	#region Raycast Origins
+	private Vector2 upperLeft = new Vector2(-0.054f , -0.12f);
+	private Vector2 upperRight = new Vector2(0.054f , -0.12f);
+	private Vector2 midLeft = new Vector2 (-0.054f, 0f);
+	private Vector2 midRight = new Vector2 (0.054f, 0f);
+	private Vector2 lowerLeft = new Vector2(-0.054f, -0.18f);
+	private Vector2 lowerRight = new Vector2(0.054f, -0.18f);
+	#endregion
+	
 	#region Attack
 	public GameObject attackHitBox;
 	private float attackCD = 0.5f;
 	private float attackCDTimer;
 	private float attackTime = 0.16f;
 	private float attackTimer;
-
+	
 	private Vector2 horizontalPosition = Vector2.right * 0.03f;
 	private Vector2 verticlePosition = Vector2.up * 0.01f;
 	private Vector3 rotation = Vector3.forward * 90f;
-
+	
 	private float yInput;
 	#endregion
-
+	
 	#region Trap
 	public GameObject stunTrapPrefab;
 	public GameObject prevTrap;
 	private float trapCD = 4f;
 	private float trapCDTimer;
 	private Vector2 trapPoint;
-
+	
 	private float trappedTime;
 	private float trapLength = 1f;
 	private bool trapped = false;
 	#endregion
-
-	#region Detect for lack of ground
-	private Vector2 groundCheckLeft = new Vector2(-0.054f , -0.12f);
-	private Vector2 groundCheckRight = new Vector2(0.054f , -0.12f);
-	#endregion
-
+	
 	#region Hit
 	private bool Hit = false;
 	private Direction hitDirection;
 	public LayerMask hitCollideDetection;
-
+	
 	private Vector2 topRecoverCheck = new Vector2(0f, 0.18f);
 	private Vector2 botRecoverCheck = new Vector2(0f, -0.18f);
-
+	
 	private bool recovered = false;
 	private float recoverTimer;
 	private float revoverLength = 0.1f;
 	#endregion
-
+	
 	public GameObject throughCollider;
 	public GameObject DeathParticles;
 	private GameObject deathParticleHolder;
-
+	
 	private Vector2 Velocity;
-
+	
 	private Vector2 lastPlatformPos;
-
+	
 	void Start()
 	{
 		attackHitBox.transform.localPosition = horizontalPosition;
 	}
-
+	
 	// Update is called once per frame
 	void FixedUpdate () 
 	{
+		Debug.Log (xMovement);
 		if(!myPlayer.dead)
 		{
 			if(!Hit && !recovered && !trapped)
@@ -120,7 +133,7 @@ public class Moving : MonoBehaviour
 				xInput = 0;
 				xInput = playerController.LeftStickX;
 				if(Mathf.Abs(xInput) < 0.1f) xInput = 0;
-
+				
 				if(playerController.DPadRight || playerController.DPadLeft)
 				{
 					xInput = 0;
@@ -130,7 +143,7 @@ public class Moving : MonoBehaviour
 				
 				yInput = 0;
 				yInput = playerController.LeftStickY;
-
+				
 				if(playerController.DPadUp || playerController.DPadDown)
 				{
 					yInput = 0;
@@ -149,10 +162,10 @@ public class Moving : MonoBehaviour
 						if(xMovement > 0) xMovement = maxSpeed;
 						else xMovement = -maxSpeed;
 					}
-
+					
 					//Here we give the Velocity vector our x movement
 					Velocity.x = xMovement;
-
+					
 					//Then we apply our reduction
 					reductionAmount = xMovement * drag;
 					reductionAmount = Mathf.Abs(xMovement - reductionAmount);
@@ -182,29 +195,89 @@ public class Moving : MonoBehaviour
 					xMovement *= airDrag;
 				}
 				#endregion
-
+				
 				#region yMovement
 				if(!grounded)
 				{
-					if(jumpHold && playerController.Action1.IsPressed)
+					if(!sliding)
 					{
-						if(jumpHoldTime < Time.time)
+						if(jumpHold && playerController.Action1.IsPressed)
+						{
+							if(jumpHoldTime < Time.time)
+							{
+								jumpHold = false;
+							}
+							else ySpeed -= holdJumpReduction;
+							
+							if(ySpeed < gravityMax) ySpeed = gravityMax;
+							Velocity.y = ySpeed;
+						}
+						else
 						{
 							jumpHold = false;
+							if(ySpeed > -0.1f) ySpeed -= (gravityForceInitial);
+							else ySpeed -= gravityForceSecondary;
+							
+							if(ySpeed < gravityMax) ySpeed = gravityMax;
+							Velocity.y = ySpeed;
 						}
-						else ySpeed -= holdJumpReduction;
-
-						if(ySpeed < gravityMax) ySpeed = gravityMax;
-						Velocity.y = ySpeed;
-					}
-					else
-					{
-						jumpHold = false;
-						if(ySpeed > -0.1f) ySpeed -= (gravityForceInitial);
-						else ySpeed -= gravityForceSecondary;
 						
-						if(ySpeed < gravityMax) ySpeed = gravityMax;
+						if(ySpeed < 0)
+						{
+							if(xMovement >= 0.5f)
+							{
+								hitInfo = Physics2D.Raycast((Vector2)transform.position + upperRight, Vector2.right, 0.03f, hitCollideDetection);
+								if(NoWallSlide())
+								{
+									hitInfo = Physics2D.Raycast((Vector2)transform.position + midRight, Vector2.right, 0.03f, hitCollideDetection);
+									if(NoWallSlide ())
+									{
+										hitInfo = Physics2D.Raycast((Vector2)transform.position + lowerRight, Vector2.right, 0.03f, hitCollideDetection);
+										NoWallSlide();
+									}
+								}
+								
+								slideRight = true;
+								
+							}
+							else if(xMovement <= -0.5f)
+							{
+								hitInfo = Physics2D.Raycast((Vector2)transform.position + upperLeft, -Vector2.right, 0.03f, hitCollideDetection);
+								if(NoWallSlide())
+								{
+									hitInfo = Physics2D.Raycast((Vector2)transform.position + midLeft, -Vector2.right, 0.03f, hitCollideDetection);
+									if(NoWallSlide())
+									{
+										hitInfo = Physics2D.Raycast((Vector2)transform.position + lowerLeft, -Vector2.right, 0.03f, hitCollideDetection);
+										NoWallSlide ();
+									}
+								}
+								slideRight = false;
+							}
+						}
+					}
+					else if(sliding)
+					{
+						if(ySpeed > slideSpeed)
+						{
+							ySpeed -= slideAccel;
+							if(ySpeed < slideSpeed) ySpeed = slideSpeed;
+						}
+						
 						Velocity.y = ySpeed;
+						
+						#region Detect move away
+						if(slideRight)
+						{
+							if(xInput > -0.4f && xMovement < 0) xMovement = 0;
+							
+						}
+						else
+						{
+							if(xInput < 0.4f && xMovement > 0) xMovement = 0;
+							
+						}
+						#endregion
 					}
 				}
 				#endregion
@@ -236,8 +309,8 @@ public class Moving : MonoBehaviour
 				
 				#endregion
 			}
-
-
+			
+			
 			#region CheckForDeath
 			if(transform.position.x > manager.rightKill)
 			{
@@ -263,11 +336,11 @@ public class Moving : MonoBehaviour
 			}
 			#endregion
 		}
-
-
+		
+		
 		rigidbody2D.velocity = Velocity;
 	}
-
+	
 	void Update()
 	{
 		#region Jumping
@@ -279,38 +352,30 @@ public class Moving : MonoBehaviour
 				{
 					if(playerController.Action1.WasPressed)
 					{
-						hitInfo = Physics2D.Raycast((Vector2)transform.position + groundCheckLeft, -Vector2.up, 0.2f, FloorMask);
+						hitInfo = Physics2D.Raycast((Vector2)transform.position + lowerLeft, -Vector2.up, 0.2f, FloorMask);
 						if (!CheckForJumpThrough ()) 
-					    {
-							hitInfo = Physics2D.Raycast((Vector2)transform.position + groundCheckRight, -Vector2.up, 0.2f, FloorMask);
+						{
+							hitInfo = Physics2D.Raycast((Vector2)transform.position + lowerRight, -Vector2.up, 0.2f, FloorMask);
 							if(!CheckForJumpThrough()) jump ();
 						}
 					}
 				}
-				else if(jumpTwo && tempNoLand < Time.time)
-				{
-					if(playerController.Action1.WasPressed)
-					{
-						jump ();
-						jumpTwo = false;
-					}
-				}
 				#endregion
-
+				
 				#region DetectIfGrounded
 				if(!grounded && ySpeed <= 0 && tempNoLand < Time.time)
 				{
-
+					
 					hitInfo = Physics2D.Raycast((Vector2)transform.position, -Vector2.up, 0.2f, FloorMask);
-					if(hitInfo.transform != null && hitInfo.transform.tag == "Floor")
+					if(hitInfo.transform != null && (hitInfo.transform.tag == "Floor" || hitInfo.transform.tag == "MovingFloor"))
 					{
 						if(LayerMask.LayerToName(hitInfo.transform.gameObject.layer) != "ThroughFloor" || yInput >= -0.85f)
 						{
 							grounded = true;
-							jumpTwo = true;
+							sliding = false;
 							if(xInput == 0)	xMovement = 0;
 							throughCollider.SetActive(true);
-
+							
 							lastPlatformPos = hitInfo.transform.position;
 						}
 					}
@@ -322,38 +387,54 @@ public class Moving : MonoBehaviour
 							throughCollider.SetActive(true);
 						}
 					}
+					
+					if(sliding && playerController.Action1.WasPressed)
+					{
+						jump();
+						if(slideRight)
+						{
+							xMovement = -slideJumpSpeed;
+							Velocity.x = xMovement;
+						}
+						else
+						{
+							xMovement = slideJumpSpeed;
+							Velocity.x = xMovement;
+						}
+						
+					}
+					
 				}
 				else if(grounded)
 				{
-					hitInfo = Physics2D.Raycast ((Vector2)transform.position + groundCheckLeft, -Vector2.up, 0.1f, FloorMask);
+					hitInfo = Physics2D.Raycast ((Vector2)transform.position + lowerLeft, -Vector2.up, 0.1f, FloorMask);
 					if(hitInfo.transform == null)
 					{
-						hitInfo = Physics2D.Raycast ((Vector2)transform.position + groundCheckRight, -Vector2.up, 0.1f, FloorMask);
+						hitInfo = Physics2D.Raycast ((Vector2)transform.position + lowerRight, -Vector2.up, 0.1f, FloorMask);
 						if(hitInfo.transform == null)
 						{
 							ySpeed = -0.13f;
 							grounded = false;
-							jumpTwo = true;
 							throughCollider.SetActive (false);
-
-
+							
+							
 						}
-						else
+						else if(hitInfo.transform.tag == "MovingFloor")
 						{
 							transform.position = (Vector2)transform.position + ((Vector2)hitInfo.transform.position - lastPlatformPos);
 							lastPlatformPos = hitInfo.transform.position;
 						}
-
+						
 					}
-					else
+					else if(hitInfo.transform.tag == "MovingFloor")
 					{
 						transform.position = (Vector2)transform.position + ((Vector2)hitInfo.transform.position - lastPlatformPos);
 						lastPlatformPos = hitInfo.transform.position;
 					}
-
+					
 				}
 				#endregion
-
+				
 				#region Laying down traps
 				if(grounded && trapCDTimer < Time.time && playerController.LeftTrigger.WasPressed)
 				{
@@ -364,13 +445,13 @@ public class Moving : MonoBehaviour
 					attackCDTimer = Time.time + attackCD;
 				}
 				#endregion
-
+				
 				#region Attacking
 				if(attackCDTimer < Time.time && playerController.RightTrigger.WasPressed)
 				{
 					attackCDTimer = attackCD + Time.time;
 					attackTimer = attackTime + Time.time;
-
+					
 					SwitchAttackHitBox(true);
 					
 					if(Mathf.Abs (yInput) + 0.2f > Mathf.Abs (xInput))
@@ -426,47 +507,54 @@ public class Moving : MonoBehaviour
 				if(attackHitBox.activeSelf == true) SwitchAttackHitBox(false);
 			}
 			#endregion
-
+			
 			#region While hit
 			if(Hit)
 			{
 				if(!recovered)
 				{
 					Velocity = Velocity.normalized * (Velocity.magnitude + 0.1f);
-
+					
 					#region CheckForRecover
 					switch(hitDirection)
 					{
 					case Direction.right:
-						hitInfo = Physics2D.Raycast((Vector2)transform.position + topRecoverCheck, Vector2.right, 0.08f, hitCollideDetection);
+						hitInfo = Physics2D.Raycast((Vector2)transform.position + upperRight, Vector2.right, 0.08f, hitCollideDetection);
 						if(NoRecover ())
 						{
-							hitInfo = Physics2D.Raycast((Vector2)transform.position + botRecoverCheck, Vector2.right, 0.08f, hitCollideDetection);
-							NoRecover ();
+							hitInfo = Physics2D.Raycast((Vector2)transform.position + midRight, Vector2.right, 0.08f, hitCollideDetection);
+							if(NoRecover())
+							{
+								hitInfo = Physics2D.Raycast((Vector2)transform.position + lowerRight, Vector2.right, 0.08f, hitCollideDetection);
+								NoRecover ();
+							}
 						}
 						break;
 					case Direction.left:
-						hitInfo = Physics2D.Raycast((Vector2)transform.position - topRecoverCheck, -Vector2.right, 0.08f, hitCollideDetection);
+						hitInfo = Physics2D.Raycast((Vector2)transform.position + lowerLeft, -Vector2.right, 0.08f, hitCollideDetection);
 						if(NoRecover ())
 						{
-							hitInfo = Physics2D.Raycast((Vector2)transform.position - botRecoverCheck, -Vector2.right, 0.08f, hitCollideDetection);
-							NoRecover ();
+							hitInfo = Physics2D.Raycast((Vector2)transform.position + midLeft, -Vector2.right, 0.08f, hitCollideDetection);
+							if(NoRecover ())
+							{
+								hitInfo = Physics2D.Raycast((Vector2)transform.position + upperLeft, -Vector2.right, 0.08f, hitCollideDetection);
+								NoRecover ();
+							}
 						}
 						break;
 					case Direction.down:
-						hitInfo = Physics2D.Raycast((Vector2)transform.position + groundCheckLeft, -Vector2.up, 0.09f, hitCollideDetection);
+						hitInfo = Physics2D.Raycast((Vector2)transform.position + lowerLeft, -Vector2.up, 0.09f, hitCollideDetection);
 						if(NoRecover ())
 						{
-							hitInfo = Physics2D.Raycast((Vector2)transform.position + groundCheckRight, -Vector2.up, 0.09f, hitCollideDetection);
+							hitInfo = Physics2D.Raycast((Vector2)transform.position + lowerRight, -Vector2.up, 0.09f, hitCollideDetection);
 							NoRecover ();
 						}
 						break;
 					case Direction.up:
-						Debug.DrawRay((Vector2)transform.position - groundCheckLeft, Vector2.up * 0.09f);
-						hitInfo = Physics2D.Raycast((Vector2)transform.position - groundCheckLeft, Vector2.up, 0.09f, hitCollideDetection);
+						hitInfo = Physics2D.Raycast((Vector2)transform.position + upperLeft, Vector2.up, 0.09f, hitCollideDetection);
 						if(NoRecover ())
 						{
-							hitInfo = Physics2D.Raycast((Vector2)transform.position - groundCheckRight, Vector2.up, 0.09f, hitCollideDetection);
+							hitInfo = Physics2D.Raycast((Vector2)transform.position + upperRight, Vector2.up, 0.09f, hitCollideDetection);
 							NoRecover ();
 						}
 						break;
@@ -482,7 +570,7 @@ public class Moving : MonoBehaviour
 				{
 					recovered = false;
 				}
-
+				
 				if(playerController.Action1.WasPressed)
 				{
 					recovered = false;
@@ -492,7 +580,7 @@ public class Moving : MonoBehaviour
 			#endregion
 		}
 	}
-
+	
 	private void SwitchAttackHitBox(bool _value)
 	{
 		if(_value) attackHitBox.SetActive(_value);
@@ -500,7 +588,7 @@ public class Moving : MonoBehaviour
 		{
 			child.gameObject.SetActive(_value);
 		}
-
+		
 		if(!_value) attackHitBox.SetActive(_value);
 	}
 	
@@ -510,34 +598,44 @@ public class Moving : MonoBehaviour
 		{
 			if(yInput < -0.85f)
 			{
-
+				
 				grounded = false;
 				tempNoLand = noLandLength + Time.time;
-
+				
 				throughCollider.SetActive(false);
 				return true;
 			}
 		}
 		return false;
 	}
-
+	
 	private void jump()
 	{
 		ySpeed = jumpSpeed;
+		sliding = false;
 		grounded = false;
 		jumpHold = true;
 		throughCollider.SetActive (false);
 		jumpHoldTime = jumpHoldLength + Time.time;
 	}
-
+	
 	private bool NoRecover()
 	{
 		if(hitInfo.transform != null)
 		{
 			Hit = false;
-			jumpTwo = true;
 			recovered = true;
 			recoverTimer = revoverLength + Time.time;
+			return false;
+		}
+		else return true;
+	}
+	
+	private bool NoWallSlide()
+	{
+		if(hitInfo.transform != null)
+		{
+			sliding = true;
 			return false;
 		}
 		else return true;
@@ -552,10 +650,9 @@ public class Moving : MonoBehaviour
 				Hit = true;
 				SwitchAttackHitBox(false);
 				throughCollider.SetActive(false);
-				jumpTwo = false;
 				ySpeed = 0;
 				xMovement = 0;
-
+				
 				if(other.transform.localPosition.x > 0 && other.transform.localPosition.x > Mathf.Abs(other.transform.localPosition.y))
 				{
 					hitDirection = Direction.right;
@@ -586,14 +683,15 @@ public class Moving : MonoBehaviour
 		{
 			Spikes();
 		}
-
+		
 		else if(other.tag == "WinZone")
 		{
-			HandleDeath();
+			Debug.Log ("adf");
 			myPlayer.AddScore();
+			HandleDeath();
 		}
 	}
-
+	
 	public void HitCollide()
 	{
 		if(attackHitBox.transform.localPosition.x > 0 && attackHitBox.transform.localPosition.x > Mathf.Abs(attackHitBox.transform.localPosition.y))
@@ -617,21 +715,21 @@ public class Moving : MonoBehaviour
 			Velocity.y += 2f;
 		}
 	}
-
+	
 	public void HandleDeath()
 	{
 		deathParticleHolder = (GameObject)GameObject.Instantiate (DeathParticles) as GameObject;
 		deathParticleHolder.transform.position = transform.position;
-
+		
 		myPlayer.PlayerDeath();
-
+		
 		if(!myPlayer.dead)
 		{
 			transform.position = SpawnPoint;
 			Hit = false;
 		}
 	}
-
+	
 	public void Trap()
 	{
 		trapped = true;
@@ -641,7 +739,7 @@ public class Moving : MonoBehaviour
 		ySpeed = 0;
 		rigidbody2D.velocity = Velocity;
 	}
-
+	
 	public void Spikes()
 	{
 		HandleDeath ();
