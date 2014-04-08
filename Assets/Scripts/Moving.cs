@@ -55,9 +55,10 @@ public class Moving : MonoBehaviour
 	private float slideSpeed = -3f;
 	private float slideAccel = 0.3f;
 	private float slideJumpSpeed = 6.5f;
-	
+
+	private bool slideRelease = false;
 	private float timeFromRelease;
-	private float lengthForRelease = 0.2f;
+	private float lengthForRelease = 0.1f;
 	#endregion
 	
 	#region Raycast Origins
@@ -124,7 +125,6 @@ public class Moving : MonoBehaviour
 	// Update is called once per frame
 	void FixedUpdate () 
 	{
-		Debug.Log (xMovement);
 		if(!myPlayer.dead)
 		{
 			if(!Hit && !recovered && !trapped)
@@ -201,81 +201,120 @@ public class Moving : MonoBehaviour
 				{
 					if(!sliding)
 					{
-						if(jumpHold && playerController.Action1.IsPressed)
-						{
-							if(jumpHoldTime < Time.time)
-							{
-								jumpHold = false;
-							}
-							else ySpeed -= holdJumpReduction;
-							
-							if(ySpeed < gravityMax) ySpeed = gravityMax;
-							Velocity.y = ySpeed;
-						}
-						else
-						{
-							jumpHold = false;
-							if(ySpeed > -0.1f) ySpeed -= (gravityForceInitial);
-							else ySpeed -= gravityForceSecondary;
-							
-							if(ySpeed < gravityMax) ySpeed = gravityMax;
-							Velocity.y = ySpeed;
-						}
+						Gravity ();
 						
-						if(ySpeed < 0)
+
+						if(xInput >= 0.5f)
 						{
-							if(xMovement >= 0.5f)
+							hitInfo = Physics2D.Raycast((Vector2)transform.position + upperRight, Vector2.right, 0.03f, hitCollideDetection);
+							if(NoWallSlide())
 							{
-								hitInfo = Physics2D.Raycast((Vector2)transform.position + upperRight, Vector2.right, 0.03f, hitCollideDetection);
+								hitInfo = Physics2D.Raycast((Vector2)transform.position + midRight, Vector2.right, 0.03f, hitCollideDetection);
+								if(NoWallSlide ())
+								{
+									hitInfo = Physics2D.Raycast((Vector2)transform.position + lowerRight, Vector2.right, 0.03f, hitCollideDetection);
+									NoWallSlide();
+								}
+							}
+							
+							slideRight = true;
+							
+						}
+						else if(xInput <= -0.5f)
+						{
+							hitInfo = Physics2D.Raycast((Vector2)transform.position + upperLeft, -Vector2.right, 0.03f, hitCollideDetection);
+							if(NoWallSlide())
+							{
+								hitInfo = Physics2D.Raycast((Vector2)transform.position + midLeft, -Vector2.right, 0.03f, hitCollideDetection);
 								if(NoWallSlide())
 								{
-									hitInfo = Physics2D.Raycast((Vector2)transform.position + midRight, Vector2.right, 0.03f, hitCollideDetection);
-									if(NoWallSlide ())
-									{
-										hitInfo = Physics2D.Raycast((Vector2)transform.position + lowerRight, Vector2.right, 0.03f, hitCollideDetection);
-										NoWallSlide();
-									}
+									hitInfo = Physics2D.Raycast((Vector2)transform.position + lowerLeft, -Vector2.right, 0.03f, hitCollideDetection);
+									NoWallSlide ();
 								}
-								
-								slideRight = true;
-								
 							}
-							else if(xMovement <= -0.5f)
-							{
-								hitInfo = Physics2D.Raycast((Vector2)transform.position + upperLeft, -Vector2.right, 0.03f, hitCollideDetection);
-								if(NoWallSlide())
-								{
-									hitInfo = Physics2D.Raycast((Vector2)transform.position + midLeft, -Vector2.right, 0.03f, hitCollideDetection);
-									if(NoWallSlide())
-									{
-										hitInfo = Physics2D.Raycast((Vector2)transform.position + lowerLeft, -Vector2.right, 0.03f, hitCollideDetection);
-										NoWallSlide ();
-									}
-								}
-								slideRight = false;
-							}
+							slideRight = false;
 						}
 					}
 					else if(sliding)
 					{
-						if(ySpeed > slideSpeed)
+						if(ySpeed < 0)
 						{
-							ySpeed -= slideAccel;
-							if(ySpeed < slideSpeed) ySpeed = slideSpeed;
+							if (ySpeed > slideSpeed)
+							{
+								ySpeed -= slideAccel;
+								if(ySpeed < slideSpeed) ySpeed = slideSpeed;
+							}
+							else if(ySpeed < slideSpeed)
+							{
+								ySpeed += slideAccel;
+								if(ySpeed > slideSpeed) ySpeed = slideSpeed;
+							}
+						}
+						else
+						{
+							Gravity();
 						}
 						
 						Velocity.y = ySpeed;
 						
 						#region Detect move away
+
 						if(slideRight)
 						{
-							if(xInput > -0.4f && xMovement < 0) xMovement = 0;
+							if(!slideRelease && xInput < 0.4f) 
+							{
+								timeFromRelease = Time.time + lengthForRelease;
+								slideRelease = true;
+							}
+							else if(slideRelease && xInput > 0.4f) slideRelease = false;
+
+							hitInfo = Physics2D.Raycast((Vector2)transform.position + upperRight, Vector2.right, 0.03f, hitCollideDetection);
+							if(hitInfo.transform == null)
+							{
+								hitInfo = Physics2D.Raycast((Vector2)transform.position + midRight, Vector2.right, 0.03f, hitCollideDetection);
+								if(hitInfo.transform == null)
+								{
+									hitInfo = Physics2D.Raycast((Vector2)transform.position + lowerRight, Vector2.right, 0.03f, hitCollideDetection);
+									if(hitInfo.transform == null)
+									{
+										sliding = false;
+									}
+								}
+							}
 							
 						}
 						else
 						{
-							if(xInput < 0.4f && xMovement > 0) xMovement = 0;
-							
+
+							if(!slideRelease && xInput > -0.4f) 
+							{
+								timeFromRelease = Time.time + lengthForRelease;
+								slideRelease = true;
+							}
+							else if(slideRelease && xInput < -0.4f) slideRelease = false;
+
+							hitInfo = Physics2D.Raycast((Vector2)transform.position + upperLeft, -Vector2.right, 0.03f, hitCollideDetection);
+							if(hitInfo.transform == null)
+							{
+								hitInfo = Physics2D.Raycast((Vector2)transform.position + midLeft, -Vector2.right, 0.03f, hitCollideDetection);
+								if(hitInfo.transform == null)
+								{
+									hitInfo = Physics2D.Raycast((Vector2)transform.position + lowerLeft, -Vector2.right, 0.03f, hitCollideDetection);
+									if(hitInfo.transform == null)
+									{
+
+										sliding = false;
+									}
+								}
+							}
+						}
+
+						if(slideRelease && timeFromRelease < Time.time)
+						{
+							sliding = false;
+							slideRelease = false;
+							if(slideRight) xMovement = -0.2f;
+							else xMovement = 0.2f;
 						}
 						#endregion
 					}
@@ -360,6 +399,23 @@ public class Moving : MonoBehaviour
 						}
 					}
 				}
+
+				if(sliding && playerController.Action1.WasPressed)
+				{
+					jump();
+					if(slideRight)
+					{
+						xMovement = -slideJumpSpeed;
+						Velocity.x = xMovement;
+					}
+					else
+					{
+						xMovement = slideJumpSpeed;
+						Velocity.x = xMovement;
+					}
+
+					
+				}
 				#endregion
 				
 				#region DetectIfGrounded
@@ -386,24 +442,7 @@ public class Moving : MonoBehaviour
 						{
 							throughCollider.SetActive(true);
 						}
-					}
-					
-					if(sliding && playerController.Action1.WasPressed)
-					{
-						jump();
-						if(slideRight)
-						{
-							xMovement = -slideJumpSpeed;
-							Velocity.x = xMovement;
-						}
-						else
-						{
-							xMovement = slideJumpSpeed;
-							Velocity.x = xMovement;
-						}
-						
-					}
-					
+					}					
 				}
 				else if(grounded)
 				{
@@ -580,6 +619,30 @@ public class Moving : MonoBehaviour
 			#endregion
 		}
 	}
+
+	private void Gravity()
+	{
+		if(jumpHold && playerController.Action1.IsPressed)
+		{
+			if(jumpHoldTime < Time.time)
+			{
+				jumpHold = false;
+			}
+			else ySpeed -= holdJumpReduction;
+			
+			if(ySpeed < gravityMax) ySpeed = gravityMax;
+			Velocity.y = ySpeed;
+		}
+		else
+		{
+			jumpHold = false;
+			if(ySpeed > -0.1f) ySpeed -= (gravityForceInitial);
+			else ySpeed -= gravityForceSecondary;
+			
+			if(ySpeed < gravityMax) ySpeed = gravityMax;
+			Velocity.y = ySpeed;
+		}
+	}
 	
 	private void SwitchAttackHitBox(bool _value)
 	{
@@ -611,7 +674,8 @@ public class Moving : MonoBehaviour
 	
 	private void jump()
 	{
-		ySpeed = jumpSpeed;
+		if(ySpeed < 0) ySpeed = jumpSpeed;
+		else ySpeed += jumpSpeed;
 		sliding = false;
 		grounded = false;
 		jumpHold = true;
