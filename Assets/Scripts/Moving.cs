@@ -30,8 +30,11 @@ public class Moving : MonoBehaviour
 	#endregion
 	
 	#region yMovement stuff
-	private float gravityForceInitial = 1f;
-	private float gravityForceSecondary = 0.9f;
+	private float gravityForceHigh = 7f;
+	private float gravityCutoffHigh = 8f;
+	private float gravityForceMed = 1f;
+	private float gravityCutoffMed = -0.1f;
+	private float gravityForceLow = 0.9f;
 	private float gravityMax = -14f;
 	private float jumpSpeed = 11f;
 	private float holdJumpReduction = 0.5f;
@@ -47,6 +50,12 @@ public class Moving : MonoBehaviour
 	
 	private float tempNoLand;
 	private float noLandLength = 0.14f;
+	#endregion
+
+	#region Platform stuff
+	private Vector2 platformVelocity;
+	private GameObject platform;
+	private bool onMovingPlatform;
 	#endregion
 	
 	#region Slide and Wall Jump
@@ -114,8 +123,6 @@ public class Moving : MonoBehaviour
 	private GameObject deathParticleHolder;
 	
 	private Vector2 Velocity;
-	
-	private Vector2 lastPlatformPos;
 	
 	void Start()
 	{
@@ -332,7 +339,7 @@ public class Moving : MonoBehaviour
 					xMovement = Mathf.Clamp(xMovement, -3f, 3f);
 					
 					Velocity.x = xMovement;
-					rigidbody2D.velocity = Velocity;
+					//rigidbody2D.velocity = Velocity;
 					break;
 				case Direction.left:
 				case Direction.right:
@@ -340,12 +347,9 @@ public class Moving : MonoBehaviour
 					ySpeed = Mathf.Clamp(ySpeed, -3f, 3f);
 					
 					Velocity.y = ySpeed;
-					rigidbody2D.velocity = Velocity;
+					//rigidbody2D.velocity = Velocity;
 					break;
 				}
-				
-				
-				
 				#endregion
 			}
 			
@@ -378,6 +382,21 @@ public class Moving : MonoBehaviour
 		
 		
 		rigidbody2D.velocity = Velocity;
+		if(onMovingPlatform)
+		{
+			platformVelocity = platform.rigidbody2D.velocity;
+			rigidbody2D.velocity = platformVelocity + Velocity;
+		}
+		else if(platformVelocity != Vector2.zero)
+		{
+			Velocity += platformVelocity;
+			platformVelocity = Vector2.zero;
+
+			xMovement = Velocity.x;
+			ySpeed = Velocity.y;
+			rigidbody2D.velocity = Velocity;
+		}
+
 	}
 	
 	void Update()
@@ -413,8 +432,6 @@ public class Moving : MonoBehaviour
 						xMovement = slideJumpSpeed;
 						Velocity.x = xMovement;
 					}
-
-					
 				}
 				#endregion
 				
@@ -431,8 +448,12 @@ public class Moving : MonoBehaviour
 							sliding = false;
 							if(xInput == 0)	xMovement = 0;
 							throughCollider.SetActive(true);
-							
-							lastPlatformPos = hitInfo.transform.position;
+
+							if(hitInfo.transform.tag == "MovingFloor")
+							{
+								platform = hitInfo.transform.gameObject;
+								onMovingPlatform = true;
+							}
 						}
 					}
 					else
@@ -454,23 +475,12 @@ public class Moving : MonoBehaviour
 						{
 							ySpeed = -0.13f;
 							grounded = false;
+							onMovingPlatform = false;
 							throughCollider.SetActive (false);
 							
 							
 						}
-						else if(hitInfo.transform.tag == "MovingFloor")
-						{
-							transform.position = (Vector2)transform.position + ((Vector2)hitInfo.transform.position - lastPlatformPos);
-							lastPlatformPos = hitInfo.transform.position;
-						}
-						
-					}
-					else if(hitInfo.transform.tag == "MovingFloor")
-					{
-						transform.position = (Vector2)transform.position + ((Vector2)hitInfo.transform.position - lastPlatformPos);
-						lastPlatformPos = hitInfo.transform.position;
-					}
-					
+					}					
 				}
 				#endregion
 				
@@ -636,8 +646,9 @@ public class Moving : MonoBehaviour
 		else
 		{
 			jumpHold = false;
-			if(ySpeed > -0.1f) ySpeed -= (gravityForceInitial);
-			else ySpeed -= gravityForceSecondary;
+			if(ySpeed > gravityCutoffHigh) ySpeed -= gravityForceHigh;
+			else if(ySpeed > gravityCutoffMed) ySpeed -= gravityForceMed;
+			else ySpeed -= gravityForceLow;
 			
 			if(ySpeed < gravityMax) ySpeed = gravityMax;
 			Velocity.y = ySpeed;
@@ -660,9 +671,9 @@ public class Moving : MonoBehaviour
 		if(hitInfo.transform != null && LayerMask.LayerToName(hitInfo.transform.gameObject.layer) == "ThroughFloor")
 		{
 			if(yInput < -0.85f)
-			{
-				
+			{				
 				grounded = false;
+				onMovingPlatform = false;
 				tempNoLand = noLandLength + Time.time;
 				
 				throughCollider.SetActive(false);
@@ -678,6 +689,7 @@ public class Moving : MonoBehaviour
 		else ySpeed += jumpSpeed;
 		sliding = false;
 		grounded = false;
+		onMovingPlatform = false;
 		jumpHold = true;
 		throughCollider.SetActive (false);
 		jumpHoldTime = jumpHoldLength + Time.time;
@@ -721,25 +733,25 @@ public class Moving : MonoBehaviour
 				{
 					hitDirection = Direction.right;
 					Velocity = Vector2.right * 15f;
-					rigidbody2D.velocity = Velocity;
+					//rigidbody2D.velocity = Velocity;
 				}
 				else if(other.transform.localPosition.x < 0 && Mathf.Abs(other.transform.localPosition.x) > Mathf.Abs(other.transform.localPosition.y))
 				{
 					hitDirection = Direction.left;
 					Velocity = -Vector2.right * 15f;
-					rigidbody2D.velocity = Velocity;
+					//rigidbody2D.velocity = Velocity;
 				}
 				else if(other.transform.localPosition.y > 0)
 				{
 					hitDirection = Direction.up;
 					Velocity = Vector2.up * 15f;
-					rigidbody2D.velocity = Velocity;
+					//rigidbody2D.velocity = Velocity;
 				}
 				else
 				{
 					hitDirection = Direction.down;
 					Velocity = -Vector2.up * 15f;
-					rigidbody2D.velocity = Velocity;
+					//rigidbody2D.velocity = Velocity;
 				}
 			}
 		}
@@ -801,7 +813,7 @@ public class Moving : MonoBehaviour
 		trappedTime = trapLength + Time.time;
 		Velocity = Vector2.zero;
 		ySpeed = 0;
-		rigidbody2D.velocity = Velocity;
+		//rigidbody2D.velocity = Velocity;
 	}
 	
 	public void Spikes()
